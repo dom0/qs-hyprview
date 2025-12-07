@@ -1,0 +1,8 @@
+singleton HeroLayout 1.0 HeroLayout.qml
+singleton JustifiedLayout 1.0 JustifiedLayout.qml
+singleton MasonryLayout 1.0 MasonryLayout.qml
+singleton SmartGridLayout 1.0 SmartGridLayout.qml
+singleton SpiralLayout 1.0 SpiralLayout.qml
+singleton BandsLayout 1.0 BandsLayout.qml
+
+singleton LayoutsManager 1.0 LayoutsManager.qml
