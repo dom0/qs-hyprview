@@ -5,7 +5,7 @@ import '.'
 Singleton {
     id: root
 
-    function doLayout( layoutAlgorithm, windowList, width, height, hGap, vGap, maxThumbHeight) {
+    function doLayout( layoutAlgorithm, windowList, width, height) {
         var doLayout = null
         switch (layoutAlgorithm) {
             case 'bands':
@@ -26,10 +26,19 @@ Singleton {
             case 'justified':
                 doLayout = JustifiedLayout.doLayout
                 break
+            case 'satellite':
+                doLayout = SatelliteLayout.doLayout
+                break
+            case 'staggered':
+                doLayout = StarggeredLayout.doLayout
+                break
+            case 'columnar':
+                doLayout = ColumnarLayout.doLayout
+                break
             default:
                 doLayout = SmartGridLayout.doLayout
         }
 
-        return doLayout( windowList, width, height, hGap, vGap, maxThumbHeight)
+        return doLayout( windowList, width, height)
     }
 }
