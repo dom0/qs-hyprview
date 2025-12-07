@@ -84,7 +84,7 @@ PanelWindow {
         root.isActive = !root.isActive
         if (root.isActive) {
             if (root.layoutAlgorithm === 'random') {
-              var layouts = ['justified', 'bands', 'masonry', 'spiral', 'hero', 'smartgrid']
+                var layouts = ['smartgrid', 'justified', 'bands', 'masonry', 'hero', 'spiral', 'satellite', 'staggered', 'columnar']
                   .filter((l) => l !== root.lastLayoutAlgorithm)
                 var randomLayout = layouts[Math.floor(Math.random() * layouts.length)]
                 root.lastLayoutAlgorithm = randomLayout

@@ -8,23 +8,23 @@ Singleton {
     function doLayout( layoutAlgorithm, windowList, width, height) {
         var doLayout = null
         switch (layoutAlgorithm) {
-            case 'bands':
-                doLayout = BandsLayout.doLayout
-                break
             case 'smartgrid':
                 doLayout = SmartGridLayout.doLayout
                 break
-            case 'spiral':
-                doLayout = SpiralLayout.doLayout
+            case 'justified':
+                doLayout = JustifiedLayout.doLayout
                 break
-            case 'hero':
-                doLayout = HeroLayout.doLayout
+            case 'bands':
+                doLayout = BandsLayout.doLayout
                 break
             case 'masonry':
                 doLayout = MasonryLayout.doLayout
                 break
-            case 'justified':
-                doLayout = JustifiedLayout.doLayout
+            case 'hero':
+                doLayout = HeroLayout.doLayout
+                break
+            case 'spiral':
+                doLayout = SpiralLayout.doLayout
                 break
             case 'satellite':
                 doLayout = SatelliteLayout.doLayout
