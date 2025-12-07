@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
@@ -8,70 +9,86 @@ import Qt5Compat.GraphicalEffects
 
 PanelWindow {
     id: root
+    property bool liveCapture: false
+
     property bool isActive: false
     property bool specialActive: false
-
-    property var hyprClients: ({})
-
-    function updateHyprClients(jsonText) {
-        try {
-            var arr = JSON.parse(jsonText);
-            var map = {};
-            for (var i = 0; i < arr.length; ++i) {
-                var c = arr[i];
-                map[c.address] = c;
-            }
-            hyprClients = map;
-        } catch (e) {
-            console.log("hyprClients: parse error", e);
-        }
-    }
+    property bool animateWindows: false
 
     anchors { top: true; bottom: true; left: true; right: true }
-    color: "#dd000000"
+    color: "transparent"
     visible: isActive
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.exclusiveZone: -1
     WlrLayershell.keyboardFocus: isActive ? 1 : 0
-    WlrLayershell.namespace: "qs-expose"
+    WlrLayershell.namespace: "quickshell:expose"
+
+
 
     IpcHandler {
         target: "expose"
-        function toggle() { root.toggleExpose(); }
+        function toggle() { 
+            root.toggleExpose(); 
+        }
     }
 
     Connections {
         target: Hyprland
         function onRawEvent(ev) {
-            if (ev.name !== "activespecial") return;
+            if (!root.isActive && ev.name !== "activespecial")
+                return;
 
-            var dataStr = String(ev.data);
-            var namePart = dataStr.split(",")[0];
-            root.specialActive = (namePart.length > 0);
+            switch (ev.name) {
+                case "openwindow":
+                case "closewindow":
+                case "changefloatingmode":
+                    Hyprland.refreshToplevels();
+                    refreshThumbs();
+                    return
+
+                case "activespecial":
+                    var dataStr = String(ev.data);
+                    var namePart = dataStr.split(",")[0];
+                    root.specialActive = (namePart.length > 0);
+                    return
+
+                default:
+                    return
+            }
         }
     }
 
-    Process {
-        id: getClients
-        command: ["hyprctl", "clients", "-j"]
-        stdout: StdioCollector {
-            id: clientsCollector
-            onStreamFinished: {
-                root.updateHyprClients(clientsCollector.text);
-            }
-        }
+    Timer {
+        id: screencopyTimer
+        interval: 125
+        repeat: true
+        running: !root.liveCapture && root.isActive
+        onTriggered: root.refreshThumbs()
     }
 
     function toggleExpose() {
         root.isActive = !root.isActive;
         if (root.isActive) {
-            exposeArea.mouseActive = false;
+            exposeArea.currentIndex = 0;
             exposeArea.searchText = "";
             searchInput.text = "";
-            exposeArea.resetCurrentIndexToActive();
+            Hyprland.refreshToplevels();
             searchInput.forceActiveFocus();
-            getClients.running = true;
+            refreshThumbs();
+          } else {
+            root.animateWindows = false
+          }
+    }
+
+    function refreshThumbs() {
+        if (!root.isActive) return;
+
+        for (var i = 0; i < winRepeater.count; ++i) {
+            var it = winRepeater.itemAt(i);
+            if (it && it.visible) {
+                it.refreshThumb();
+            }
         }
     }
 
@@ -80,17 +97,9 @@ PanelWindow {
         anchors.fill: parent
         focus: true
 
-        scale: root.isActive ? 1 : 0.1
-        transformOrigin: Item.Center
-
-        Behavior on scale {
-            NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
-        }
-
         Keys.onPressed: (event) => {
             if (!root.isActive) return;
 
-            // ESC chiude sempre
             if (event.key === Qt.Key_Escape) {
                 root.toggleExpose();
                 event.accepted = true;
@@ -172,16 +181,13 @@ PanelWindow {
                 }
             }
 
-            const isTabForward  = (event.key === Qt.Key_Tab);
-            const isTabBackward = (event.key === Qt.Key_Backtab);
-
             // Right / Tab => avanti (lineare)
-            if (event.key === Qt.Key_Right || isTabForward) {
+            if (event.key === Qt.Key_Right || event.key === Qt.Key_Tab) {
                 moveSelectionHorizontal(+1);
                 event.accepted = true;
             }
             // Left / Backtab => indietro (lineare)
-            else if (event.key === Qt.Key_Left || isTabBackward) {
+            else if (event.key === Qt.Key_Left || event.key === Qt.Key_Backtab) {
                 moveSelectionHorizontal(-1);
                 event.accepted = true;
             }
@@ -211,19 +217,12 @@ PanelWindow {
             onClicked: {
                 root.toggleExpose();
             }
-            onPositionChanged: {
-                exposeArea.mouseActive = true;
-            }
         }
 
-        Rectangle {
+        Item {
             id: layout
             anchors.fill: parent
             anchors.margins: 32
-            radius: 32
-            color: "transparent"
-            border.width: 0
-            clip: true
 
             Column {
                 id: layoutRoot
@@ -256,9 +255,8 @@ PanelWindow {
                     property real cellH: height / rows
 
                     property int currentIndex: 0
-                    property bool mouseActive: false
-
                     property string searchText: ""
+
 
                     onSearchTextChanged: {
                         var count = winRepeater.count;
@@ -272,57 +270,39 @@ PanelWindow {
                         currentIndex = 0;
                     }
 
-                    function resetCurrentIndexToActive() {
-                        var count = winRepeater.count;
-                        if (count <= 0) {
-                            currentIndex = 0;
-                            return;
-                        }
-
-                        var active = Hyprland.activeToplevel;
-                        var activeAddr = active ? active.address : "";
-
-                        if (activeAddr && !activeAddr.startsWith("0x"))
-                            activeAddr = "0x" + activeAddr;
-
-                        if (activeAddr) {
-                            for (var i = 0; i < count; ++i) {
-                                var it = winRepeater.itemAt(i);
-                                if (!it || !it.hWin || !it.visible)
-                                    continue;
-                                var addr = it.hWin.address;
-                                if (!addr)
-                                    continue;
-                                if (!addr.startsWith("0x"))
-                                    addr = "0x" + addr;
-                                if (addr === activeAddr) {
-                                    currentIndex = i;
-                                    return;
-                                }
-                            }
-                        }
-
-                        for (var j = 0; j < count; ++j) {
-                            var it2 = winRepeater.itemAt(j);
-                            if (it2 && it2.visible) {
-                                currentIndex = j;
-                                return;
-                            }
-                        }
-                        currentIndex = 0;
-                    }
-
-                    // --- GRIGLIA DI MINIATURE CON REPACK ANIMATO ---
+                    // --- GRIGLIA DI MINIATURE ---
                     Repeater {
                         id: winRepeater
-                        model: Hyprland.toplevels
+                        // model: Hyprland.toplevels
+                        model: ScriptModel {
+                            values: {
+                                let windowsList = []
+                                for (let w of Hyprland.toplevels.values)  {
+                                  windowsList.push(w)
+                                }
+                                windowsList = windowsList.filter(w => {
+                                  let clientInfo = w?.lastIpcObject ?? {}
+                                  let workspaceId = clientInfo?.workspace?.id ?? false
+                                  let size = clientInfo?.size ?? [0, 0]
+                                  let at = clientInfo?.at ?? [-1000, -1000]
+                                  return workspaceId !== false && at[1] + size[1] > 0
+                                })
+
+                                windowsList.sort((a, b) => a.lastIpcObject.workspace.id < b.lastIpcObject.workspace.id ? -1 :1)
+                                return windowsList
+                            }
+                        }
 
                         delegate: Item {
                             id: delegateItem
                             property var hWin: modelData
                             property var wHandle: hWin.wayland
 
-                            property var clientInfo: root.hyprClients["0x" + hWin.address]
+                            property var clientInfo: hWin.lastIpcObject
+                            property int clientWidth: clientInfo && clientInfo.size ? clientInfo.size[0] : 0
+                            property int clientHeight: clientInfo && clientInfo.size ? clientInfo.size[1] : 0
+                            property int clientX: clientInfo && clientInfo.at ? clientInfo.at[0] : 0
+                            property int clientY: clientInfo && clientInfo.at ? clientInfo.at[1] : 0
 
                             property bool matches: {
                                 var q = exposeArea.searchText.toLowerCase();
@@ -332,18 +312,13 @@ PanelWindow {
                                 var c  = ((clientInfo ? clientInfo["class"] : "") || "").toLowerCase();
                                 var ic = ((clientInfo && clientInfo.initialClass) ? clientInfo.initialClass : "").toLowerCase();
                                 var app = (hWin.appId || (clientInfo ? clientInfo.initialClass : "") || "").toLowerCase();
-
                                 return t.indexOf(q)  !== -1 || c.indexOf(q)  !== -1 || ic.indexOf(q) !== -1 || app.indexOf(q) !== -1;
                             }
-
-                            property int clientWidth: clientInfo ? clientInfo.size[0] : 0
-                            property int clientHeight: clientInfo ? clientInfo.size[1] : 0
 
                             property bool hovered: visible && (exposeArea.currentIndex === index)
 
                             property int compactIndex: {
-                                if (!visible)
-                                    return -1;
+                                if (!visible) return -1;
                                 var c = 0;
                                 for (var i = 0; i < winRepeater.count; ++i) {
                                     var it = winRepeater.itemAt(i);
@@ -359,55 +334,51 @@ PanelWindow {
                             property int rowIndex: compactIndex >= 0 ? Math.floor(compactIndex / exposeArea.columns) : 0
                             property int colIndex: compactIndex >= 0 ? (compactIndex % exposeArea.columns) : 0
 
-                            property real srcW: clientWidth
-                            property real srcH: clientHeight
+                            // --- CALCOLO CENTRATURA RIGA ---
+                            property int itemsInThisRow: {
+                                // Se non è l'ultima riga, è piena
+                                if (rowIndex < exposeArea.rows - 1) return exposeArea.columns;
+                                
+                                // Calcolo elementi nell'ultima riga
+                                var remainder = exposeArea.totalWindows % exposeArea.columns;
+                                return (remainder === 0) ? exposeArea.columns : remainder;
+                            }
+
+                            // Offset per centrare: (SpazioTotale - SpazioOccupatoDalleCelle) / 2
+                            property real rowOffset: (exposeArea.width - (itemsInThisRow * exposeArea.cellW)) / 2
 
                             property real maxThumbW: exposeArea.cellW * 0.9
                             property real maxThumbH: exposeArea.cellH * 0.9
 
-                            property real baseScale: Math.min(maxThumbW / srcW, maxThumbH / srcH, 1.0)
+                            property real baseScale: Math.min(
+                                maxThumbW / (clientWidth > 0 ? clientWidth : 1),
+                                maxThumbH / (clientHeight > 0 ? clientHeight : 1),
+                                1.0
+                            )
 
-                            property real thumbW: srcW * baseScale
-                            property real thumbH: srcH * baseScale
-
-                            property real maxBadgeWidth: thumbW * 0.75
+                            property real thumbW: (clientWidth > 0 ? clientWidth : 0) * baseScale
+                            property real thumbH: (clientHeight > 0 ? clientHeight : 0)  * baseScale
 
                             width:  exposeArea.cellW
                             height: exposeArea.cellH
-
-                            x: colIndex * exposeArea.cellW
+                            
+                            x: rowOffset + (colIndex * exposeArea.cellW)
                             y: rowIndex * exposeArea.cellH
-
+                            
                             Behavior on x {
-                                NumberAnimation { duration: mainScope.scale===1 ? 100 : 0; easing.type: Easing.OutQuad }
+                                NumberAnimation { duration: root.animateWindows ? 100 : 0; easing.type: Easing.OutQuad }
                             }
                             Behavior on y {
-                                NumberAnimation { duration: mainScope.scale===1 ? 100 : 0; easing.type: Easing.OutQuad }
+                                NumberAnimation { duration: root.animateWindows ? 100 : 0; easing.type: Easing.OutQuad }
                             }
 
                             visible: !!wHandle && matches
 
-                            function isSpecialWindow() {
-                                if (!hWin.workspace)
-                                    return false;
-                                if (hWin.workspace.id < 0)
-                                    return true;
-                                if (hWin.workspace.name && hWin.workspace.name.startsWith("special"))
-                                    return true;
-                                return false;
-                            }
 
                             function activateWindow() {
-                                if (!hWin)
-                                    return;
+                                if (!hWin) return;
 
-                                var addr = hWin.address;
-                                if (!addr || addr === "")
-                                    return;
-                                if (!addr.startsWith("0x"))
-                                    addr = "0x" + addr;
-
-                                var targetIsSpecial = isSpecialWindow();
+                                var targetIsSpecial = (hWin?.workspace ?? 0) < 0 || (hWin?.workspace?.name??"").startsWith("special")
 
                                 if (root.specialActive && !targetIsSpecial) {
                                     Hyprland.dispatch("togglespecialworkspace");
@@ -417,12 +388,21 @@ PanelWindow {
                                     hWin.workspace.activate();
                                 }
 
-                                Hyprland.dispatch("focuswindow address:" + addr);
+                                Hyprland.dispatch("focuswindow address:0x" + hWin.address);
                                 root.toggleExpose();
                             }
 
+                            function closeWindow() {
+                                if (!hWin) return;
+                                Hyprland.dispatch("closewindow address:0x" + hWin.address);
+                            }
+
+                            function refreshThumb() {
+                                thumbLoader.item.captureFrame();
+                            }
+
                             // --- card ---
-                            Rectangle {
+                            Item {
                                 id: card
                                 width: delegateItem.thumbW
                                 height: delegateItem.thumbH
@@ -430,10 +410,6 @@ PanelWindow {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 anchors.verticalCenter:   parent.verticalCenter
 
-                                color: "#00000000"
-                                border.color : "#ff0088cc"
-                                border.width : delegateItem.hovered ? 3 : 0
-                                radius: 12
                                 scale: delegateItem.hovered ? 1.05 : 0.95
                                 transformOrigin: Item.Center
 
@@ -441,61 +417,80 @@ PanelWindow {
                                     NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
                                 }
 
-                                opacity: delegateItem.hovered ? 1.0 : 0.85
-                                Behavior on opacity {
-                                    NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-                                }
-
                                 MouseArea {
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
+                                    acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
                                     onEntered: {
-                                        if (exposeArea.mouseActive) {
-                                            exposeArea.currentIndex = index;
-                                        }
-                                    }
-                                    onClicked: {
                                         exposeArea.currentIndex = index;
-                                        delegateItem.activateWindow();
                                     }
-                                }
+                                    onClicked: event => {
+                                        exposeArea.currentIndex = index;
 
-
-                                ScreencopyView {
-                                    id: thumb
-                                    anchors.fill: parent
-                                    anchors.margins: 3
-                                    captureSource: wHandle
-                                    live: mainScope.scale===1 && root.isActive // && delegateItem.hovered
-                                    paintCursor: false
-                                    constraintSize: Qt.size(width, height)
-                                    visible: root.isActive && wHandle && hasContent
-
-                                    layer.enabled: true
-                                    layer.effect: OpacityMask {
-                                        maskSource: Rectangle {
-                                            width: delegateItem.thumbW
-                                            height: delegateItem.thumbH
-                                            radius: 12
+                                        if (event.button === Qt.LeftButton) {
+                                            delegateItem.activateWindow();
+                                        }
+                                        if (event.button === Qt.MiddleButton) {
+                                            delegateItem.closeWindow();
                                         }
                                     }
                                 }
 
+                                RectangularShadow {
+                                    anchors.fill: parent
+                                    radius: 16
+                                    blur: 24
+                                    spread: 10
+                                    color: "#55000000"
+                                    cached: true
+                                }
+
+                                Loader {
+                                    id: thumbLoader
+                                    anchors.fill: parent
+                                    active: root.isActive && !!delegateItem.wHandle
+                                    sourceComponent: ScreencopyView {
+                                        id: thumb
+                                        anchors.fill: parent
+                                        captureSource: delegateItem.wHandle
+                                        live: root.liveCapture && root.isActive
+                                        paintCursor: false
+                                        visible: root.isActive && delegateItem.wHandle && hasContent
+
+                                        layer.enabled: true
+                                        layer.effect: OpacityMask {
+                                            maskSource: Rectangle {
+                                                width: thumb.width
+                                                height: thumb.height
+                                                radius: 16
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: delegateItem.hovered ? "transparent": "#33000000"
+                                            border.width : delegateItem.hovered ? 3 : 1
+                                            border.color : delegateItem.hovered ? "#ff0088cc" : "#cc444444"
+                                            radius: 16
+                                        }
+                                    }
+                                }
 
                                 Rectangle {
                                     id: badge
                                     z: 100
-                                    width: Math.min(titleText.implicitWidth + 24, delegateItem.maxBadgeWidth)
+                                    width: Math.min(titleText.implicitWidth + 24, delegateItem.thumbW * 0.75)
                                     height: titleText.implicitHeight + 12
 
                                     x: (card.width - width) / 2
                                     y: card.height - height - (card.height * 0.08)
 
                                     radius: 12
-                                    color: "#DD000000"
-                                    border.width: 0
+                                    color: delegateItem.hovered ? "#FF000000" : "#CC000000"
+                                            border.width : 1
+                                            border.color : "#ff464646"
 
                                     Text {
                                         id: titleText
@@ -503,25 +498,24 @@ PanelWindow {
                                         width: parent.width - 16
                                         text: hWin.title
                                         color: "white"
-                                        font.pixelSize: 12
+                                        font.pixelSize: delegateItem.hovered ? 13 : 12
                                         elide: Text.ElideRight
                                         horizontalAlignment: Text.AlignHCenter
                                         verticalAlignment: Text.AlignVCenter
                                     }
                                 }
-
                             }
                         }
                     }
                 }
 
-                // BARRA DI RICERCA (sempre sotto le miniature)
+                // BARRA DI RICERCA
                 Rectangle {
                     id: searchBox
                     width: Math.min(layoutRoot.width * 0.6, 480)
                     height: 36
                     radius: 18
-                    color: "#33000000"
+                    color: "#55000000"
                     border.width: 1
                     border.color: "#50ffffff"
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -553,23 +547,16 @@ PanelWindow {
                                 event.key === Qt.Key_Backtab) {
                                 event.accepted = false;
                             }
+                            root.animateWindows = true
                         }
 
                         Text {
                             anchors.fill: parent
                             verticalAlignment: Text.AlignVCenter
-                            color: "#80ffffff"
+                            color: "#ffffffff"
                             font.pixelSize: 14
                             text: "Filtra finestre per titolo..."
                             visible: !searchInput.text || searchInput.text.length === 0
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            searchInput.forceActiveFocus();
-                            exposeArea.mouseActive = false;
                         }
                     }
                 }
@@ -577,5 +564,3 @@ PanelWindow {
         }
     }
 }
-
-
