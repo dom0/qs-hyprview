@@ -167,7 +167,7 @@ Item {
 
     function refreshThumb() {
         if (thumbLoader.item) {
-            thumbLoader.item.captureFrame()
+              thumbLoader.item.children[0].captureFrame()
         }
     }
 
@@ -221,29 +221,57 @@ Item {
             id: thumbLoader
             anchors.fill: parent
             active: root.isActive && !!thumbContainer.wHandle
-            sourceComponent: ScreencopyView {
-                id: thumb
+            sourceComponent: Item {
+                id: thumbWrapper
                 anchors.fill: parent
-                captureSource: thumbContainer.wHandle
-                live: root.liveCapture && root.isActive
-                paintCursor: false
-                visible: root.isActive && thumbContainer.wHandle && hasContent
 
-                layer.enabled: true
-                layer.effect: OpacityMask {
-                    maskSource: Rectangle {
-                        width: thumb.width
-                        height: thumb.height
+                ScreencopyView {
+                    id: thumb
+                    anchors.centerIn: parent
+                    captureSource: thumbContainer.wHandle
+                    live: root.liveCapture && root.isActive
+                    paintCursor: false
+                    visible: root.isActive && thumbContainer.wHandle && hasContent
+
+                    property int rotationAngle: 0
+                    property int rotationWidth: 0
+                    property int rotationHeight: 0
+                    property bool ready: hasContent
+
+                    transformOrigin: Item.Center
+
+                    rotation: rotationAngle
+                    width: rotationWidth
+                    height: rotationHeight
+
+                    // constraintSize: Qt.size(width, height)
+
+                    layer.enabled: true
+                    layer.effect: OpacityMask {
+                        maskSource: Rectangle {
+                            width: thumb.width
+                            height: thumb.height
+                            radius: 16
+                        }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: thumbContainer.hovered ? "transparent": "#33000000"
+                        border.width : thumbContainer.hovered ? 3 : 1
+                        border.color : thumbContainer.hovered ? "#ff0088cc" : "#cc444444"
                         radius: 16
                     }
-                }
 
-                Rectangle {
-                    anchors.fill: parent
-                    color: thumbContainer.hovered ? "transparent": "#33000000"
-                    border.width : thumbContainer.hovered ? 3 : 1
-                    border.color : thumbContainer.hovered ? "#ff0088cc" : "#cc444444"
-                    radius: 16
+                    onReadyChanged: {
+                        let monitorOrientation = Hyprland.monitors.values.find(el => el.id == thumbContainer.clientInfo.monitor).lastIpcObject?.transform || 0
+                        let orientations = { 0: 0, 1: 90, 2: 180, 3: 270}
+                        let angle = orientations[monitorOrientation]
+
+                        rotationAngle = angle
+                        rotationWidth = (angle % 180 === 0) ? thumbWrapper.width : thumbWrapper.height
+                        rotationHeight = (angle % 180 === 0) ? thumbWrapper.height : thumbWrapper.width
+                    }
                 }
             }
         }
