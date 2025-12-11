@@ -102,7 +102,7 @@ PanelWindow {
                 root.lastLayoutAlgorithm = root.layoutAlgorithm
             }
 
-            exposeArea.currentIndex = 0
+            exposeArea.currentIndex = -1
             exposeArea.searchText = ""
             Hyprland.refreshToplevels()
             searchInput.forceActiveFocus()
