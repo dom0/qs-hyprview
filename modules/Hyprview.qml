@@ -6,8 +6,8 @@ import Quickshell.Widgets
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Qt5Compat.GraphicalEffects
-import '../layouts'
-import '.'
+import "../layouts"
+import "."
 
 PanelWindow {
     id: root
@@ -92,7 +92,7 @@ PanelWindow {
                 root.lastLayoutAlgorithm = root.layoutAlgorithm
             }
 
-            exposeArea.currentIndex = 0
+            exposeArea.currentIndex = -1
             exposeArea.searchText = ""
             Hyprland.refreshToplevels()
             searchInput.forceActiveFocus()

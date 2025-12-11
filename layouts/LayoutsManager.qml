@@ -1,6 +1,6 @@
 pragma Singleton
 import Quickshell
-import '.'
+import "."
 
 Singleton {
     id: root

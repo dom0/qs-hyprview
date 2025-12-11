@@ -180,6 +180,11 @@ Item {
                     thumbContainer.closeWindow()
                 }
             }
+            onExited: {
+                if (exposeArea.currentIndex === index) {
+                    exposeArea.currentIndex = -1
+                }
+            }
         }
 
         RectangularShadow {
