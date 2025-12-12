@@ -6,8 +6,8 @@ import Quickshell.Widgets
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Qt5Compat.GraphicalEffects
-import '../layouts'
-import '.'
+import "../layouts"
+import "."
 
 PanelWindow {
     id: root
