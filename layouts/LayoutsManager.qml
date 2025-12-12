@@ -35,6 +35,9 @@ Singleton {
             case 'columnar':
                 doLayout = ColumnarLayout.doLayout
                 break
+            case 'vortex':
+                doLayout = VortexLayout.doLayout
+                break
             default:
                 doLayout = SmartGridLayout.doLayout
         }

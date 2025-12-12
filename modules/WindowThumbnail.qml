@@ -31,6 +31,10 @@ Item {
 
     x: 0
     y: 0
+    z: hovered? 1000: modelData.zIndex || 0
+
+    property real targetRotation: modelData.rotation || 0
+    rotation: 0
 
     visible: !!wHandle
 
@@ -47,6 +51,14 @@ Item {
         property: "y"
         duration: root.animateWindows ? 100 : 0
         easing.type: Easing.OutQuad
+    }
+    NumberAnimation {
+        id: animRotation
+        target: thumbContainer
+        property: "rotation"
+        duration: 400
+        easing.type: Easing.OutBack // Effetto rimbalzo/inerzia
+        easing.overshoot: 1.2
     }
 
     function updateLastPos() {
@@ -104,10 +116,19 @@ Item {
         animY.start()
     }
 
+    onTargetRotationChanged: {
+        rotation = targetRotation
+        animRotation.stop()
+        animRotation.from = 0
+        animRotation.to = targetRotation
+        animRotation.start()
+    }
+
     onXChanged: updateLastPos()
     onYChanged: updateLastPos()
 
     Component.onCompleted: {
+        rotation = targetRotation
         if (!root.animateWindows) {
             x = targetX
             y = targetY

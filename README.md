@@ -14,11 +14,12 @@ See `qs-hyprview` in action with its different layout algorithms.
 | :---: | :---: | :---: |
 | ![Smart Grid](screenshots/smartgrid.jpeg)<br>**Smart Grid** | ![Bands](screenshots/bands.jpeg)<br>**Bands** | ![Masonry](screenshots/masonry.jpeg)<br>**Masonry** |
 | ![Hero](screenshots/hero.jpeg)<br>**Hero** | ![Spiral](screenshots/spiral.jpeg)<br>**Spiral** | ![Satellite](screenshots/satellite.jpeg)<br>**Satellite** |
+| ![Vortex](screenshots/vortex.jpeg)<br>**Vortex** | ![Staggered](screenshots/staggered.jpeg)<br>**Staggered** | **What's next?** |
 
 ## ✨ Features
 
 *   **⚡ Native Performance:** Built on Qt6/QML and Wayland Layershell for zero latency and smooth 60fps animations.
-*   **🧮 9 Layout Algorithms:** A collection of layouts ranging from productive grids to scenic orbital views.
+*   **🧮 10 Layout Algorithms:** A collection of layouts ranging from productive grids to scenic orbital views.
 *   **🔍 Instant Search:** Filter windows by title, class, or app name immediately upon typing.
 *   **🎮 Full Navigation:** Supports both Keyboard (Arrows/Tab/Enter) and Mouse (Hover/Click).
 *   **🎨 Smart Safe Area:** All layouts calculate a 90% "Safe Area" to ensure hover animations never clip against screen edges.
@@ -57,7 +58,7 @@ The project exposes an IPC handler named `expose`. You can bind a key in Hyprlan
 **In `hyprland.conf`:**
 ```ini
 # Available: "smartgrid", "justified", "masonry", "bands", "hero", "spiral",
-#            "satellite", "staggered", "columnar", "random"
+#            "satellite", "staggered", "columnar", "vortex", random"
 $layout = 'masonry'
 bind = $mainMod, TAB, exec, quickshell ipc -p /path/to/cloned/repo call expose toggle $layout
 
@@ -112,7 +113,7 @@ property bool moveCursorToActiveWindow: true
 
 ## 📐 Layout Algorithms
 
-This project includes a sophisticated `LayoutsManager` offering **9 distinct algorithms**:
+This project includes a sophisticated `LayoutsManager` offering **10 distinct algorithms**:
 
 ### 1. Smart Grid (`smartgrid`)
 The default layout. It uses an **Iterative Best-Fit** algorithm. It simulates every possible row/column combination to find the exact grid configuration that results in the largest possible thumbnails without overflowing the screen.
@@ -153,6 +154,11 @@ Divides the screen into vertical strips.
 *   Ignores rows completely and gives every window maximum vertical space.
 *   Excellent for **Ultrawide** monitors (21:9 / 32:9).
 
+### 10. Vortex (`vortex`)
+A depth-based Phyllotaxis layout (Sunflower pattern), designed for a scenographic and immersive experience.
+*   Center Focus: The active window sits in the absolute center at maximum scale.
+*   Depth Effect: Subsequent windows spiral outwards, gradually decreasing in size and z-index. This creates a 3D "tunnel" effect where older windows fade into the background.
+
 ### 🎲 Random (`random`)
 Feeling adventurous? This mode selects one of the above algorithms at random every time you open the dashboard.
 
@@ -174,3 +180,11 @@ Pull Requests are welcome! If you want to add a new layout algorithm or improve 
 ## 📄 License
 
 Distributed under the GNU General Public License v3.0. See `LICENSE` for more information.
+
+---
+
+<div align="center">
+
+Made with ❤️ for the Hyprland community
+
+</div>
