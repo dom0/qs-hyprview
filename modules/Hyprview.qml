@@ -113,9 +113,8 @@ PanelWindow {
             }
 
             exposeArea.currentIndex = -1
-            exposeArea.searchText = ""
+            searchBox.reset()
             Hyprland.refreshToplevels()
-            searchInput.forceActiveFocus()
             refreshThumbs()
         } else {
             root.animateWindows = false
@@ -352,42 +351,11 @@ PanelWindow {
                     }
                 }
 
-                // Search bar
-                Rectangle {
+                SearchBox {
                     id: searchBox
-                    width: Math.min(layoutRoot.width * 0.6, 480)
-                    height: 40
-                    radius: 20
-                    color: "#66000000"
-                    border.width: 1
-                    border.color: "#33ffffff"
-                    anchors.horizontalCenter: parent.horizontalCenter
-
-                    TextInput {
-                        id: searchInput
-                        anchors.fill: parent
-                        anchors.leftMargin: 16
-                        anchors.rightMargin: 16
-                        verticalAlignment: TextInput.AlignVCenter
-                        color: "white"
-                        font.pixelSize: 16
-                        text: exposeArea.searchText
-                        activeFocusOnTab: false
-                        selectByMouse: true
-
-                        onTextChanged: {
-                            exposeArea.searchText = text
-                            root.animateWindows = true
-                        }
-
-                        Text {
-                            anchors.fill: parent
-                            verticalAlignment: Text.AlignVCenter
-                            color: "#88ffffff"
-                            font.pixelSize: 14
-                            text: "Type to filter windows..."
-                            visible: !searchInput.text || searchInput.text.length === 0
-                        }
+                    onTextChanged: function(text) {
+                        root.animateWindows = true
+                        exposeArea.searchText = text
                     }
                 }
             }
