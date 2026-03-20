@@ -64,18 +64,18 @@ PanelWindow {
                 case "closewindow":
                 case "changefloatingmode":
                 case "movewindow":
-                    Hyprland.refreshToplevels()
-                    refreshThumbs()
-                    return
+                Hyprland.refreshToplevels()
+                refreshThumbs()
+                return
 
                 case "activespecial":
-                    var dataStr = String(ev.data)
-                    var namePart = dataStr.split(",")[0]
-                    root.specialActive = (namePart.length > 0)
-                    return
+                var dataStr = String(ev.data)
+                var namePart = dataStr.split(",")[0]
+                root.specialActive = (namePart.length > 0)
+                return
 
                 default:
-                    return
+                return
             }
         }
     }
@@ -105,7 +105,7 @@ PanelWindow {
                     'staggered',
                     'columnar',
                     'vortex',
-                  ].filter((l) => l !== root.lastLayoutAlgorithm)
+                ].filter((l) => l !== root.lastLayoutAlgorithm)
                 var randomLayout = layouts[Math.floor(Math.random() * layouts.length)]
                 root.lastLayoutAlgorithm = randomLayout
             } else {
@@ -208,6 +208,26 @@ PanelWindow {
                 }
             }
 
+            // --- NVIM-style navigation with Ctrl ---
+            const ctrl = event.modifiers & Qt.ControlModifier
+
+            if (ctrl) {
+                if (event.key === Qt.Key_L) {
+                    moveSelectionHorizontal(1)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_H) {
+                    moveSelectionHorizontal(-1)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_J) {
+                    moveSelectionVertical(1)
+                    event.accepted = true
+                } else if (event.key === Qt.Key_K) {
+                    moveSelectionVertical(-1)
+                    event.accepted = true
+                }
+                return
+            }
+
             if (event.key === Qt.Key_Right || event.key === Qt.Key_Tab) {
                 moveSelectionHorizontal(1)
                 event.accepted = true
@@ -300,7 +320,7 @@ PanelWindow {
 
                                 if (q.length > 0) {
                                     var match = title.indexOf(q) !== -1 || clazz.indexOf(q) !== -1 ||
-                                                ic.indexOf(q) !== -1 || app.indexOf(q) !== -1
+                                    ic.indexOf(q) !== -1 || app.indexOf(q) !== -1
                                     if (!match) continue
                                 }
 
