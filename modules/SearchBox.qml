@@ -8,7 +8,7 @@ Rectangle {
     radius: 20
     color: "#66000000"
     border.width: 1
-    border.color: "#33ffffff"
+    border.color: m3.m3Primary
     anchors.horizontalCenter: parent.horizontalCenter
 
     property var onTextChanged: null

@@ -1,10 +1,15 @@
 import QtQuick
 import Quickshell
 import "./modules"
+import "./common"
 
 ShellRoot {
-  Hyprview {
-    liveCapture: false
-    moveCursorToActiveWindow: false
-  }
+    id: root
+
+    Appearance { id: m3 }
+
+    Hyprview {
+        liveCapture: true
+        moveCursorToActiveWindow: false
+    }
 }

@@ -242,7 +242,7 @@ Item {
                     anchors.fill: parent
                     color: thumbContainer.hovered ? "transparent": "#33000000"
                     border.width : thumbContainer.hovered ? 3 : 1
-                    border.color : thumbContainer.hovered ? "#ff0088cc" : "#cc444444"
+                    border.color : thumbContainer.hovered ? m3.m3Primary : m3.m3Secondary
                     radius: 16
                 }
             }
