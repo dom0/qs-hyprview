@@ -24,6 +24,7 @@ See `qs-hyprview` in action with its different layout algorithms.
 *   **🎮 Full Navigation:** Supports both Keyboard (Arrows/Tab/Enter) and Mouse (Hover/Click).
 *   **🎨 Smart Safe Area:** All layouts calculate a 90% "Safe Area" to ensure hover animations never clip against screen edges.
 *   **⚙️ Live Thumbnails:** Live window contents via Hyprland screencopy.
+*   **💐 Matugen Integration:** allows you to change the layout color to match your desktop.
 
 ## 🛠️ Dependencies
 
@@ -122,6 +123,29 @@ property bool liveCapture: false
 property bool moveCursorToActiveWindow: true
 ```
 
+## 🎨 Matugen Dynamic Colorscheme From Wallpaper
+
+### Manual Configuration
+
+If you don't want to use Matugen, you can simply edit common/Appearance.qml and change the hexadecimal values to match your color of choice (mainly m3Primary and m3OnPrimary).
+
+### Dynamic Colors (Matugen)
+
+1. Copy the template (qs-hyprspace-template.qml) from this repo to matugen's templates folder
+
+2. Add the following to your ~/.config/matugen/config.toml:
+```
+[templates.qs-hyprview]
+input_path  = "~/.config/matugen/templates/qs-hyprview-template.qml"
+output_path = "~/.config/quickshell/qs-hyprview/common/Appearance.qml"
+```
+
+3. Generate your colorscheme:
+
+```
+matugen image /path/to/your/wallpaper
+```
+
 ## 📐 Layout Algorithms
 
 This project includes a sophisticated `LayoutsManager` offering **10 distinct algorithms**:
@@ -179,6 +203,7 @@ Feeling adventurous? This mode selects one of the above algorithms at random eve
 | :--- | :--- |
 | **Typing** | Instantly filters windows by Title, Class, or App ID |
 | **Arrows (↑ ↓ ← →)** | Spatial navigation between thumbnails |
+| Ctrl + (H/J/K/L) | Vim-style spatial navigation |
 | **Tab / Shift+Tab** | Sequential navigation |
 | **Enter** | Activate selected window |
 | **Middle Click** | Close hovered window |
