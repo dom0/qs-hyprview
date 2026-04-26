@@ -38,6 +38,9 @@ Singleton {
             case 'vortex':
                 doLayout = VortexLayout.doLayout
                 break
+            case 'windows11':
+                doLayout = Windows11Layout.doLayout
+                break
             default:
                 doLayout = SmartGridLayout.doLayout
         }
