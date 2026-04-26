@@ -30,7 +30,7 @@ Singleton {
                 doLayout = SatelliteLayout.doLayout
                 break
             case 'staggered':
-                doLayout = StarggeredLayout.doLayout
+                doLayout = StaggeredLayout.doLayout
                 break
             case 'columnar':
                 doLayout = ColumnarLayout.doLayout
