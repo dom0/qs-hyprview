@@ -4,21 +4,21 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import Qt5Compat.GraphicalEffects
+import "../services"
 
 Item {
     id: thumbContainer
 
-    property var hWin: null
-    property var wHandle:null
+    // Normalized window record, see services/WindowSource.qml
+    property var win: null
 
-    property string winKey: ''
+    readonly property var wHandle: win ? win.handle : null
+    readonly property string winKey: win ? win.key : ''
 
     property real thumbW: -1
     property real thumbH: -1
 
-    property var clientInfo: {}
     property bool hovered: false
 
     property real targetX: -1000
@@ -137,32 +137,19 @@ Item {
     }
 
     function activateWindow() {
-        if (!hWin) return
-
-        var targetIsSpecial = (hWin?.workspace ?? 0) < 0 || (hWin?.workspace?.name ?? "").startsWith("special")
-
-        if (root.specialActive && !targetIsSpecial) {
-            Hyprland.dispatch("togglespecialworkspace")
-        }
-
-        if (hWin.workspace) {
-            hWin.workspace.activate()
-        }
+        if (!win) return
 
         root.toggleExpose()
-        Hyprland.dispatch("focuswindow address:0x" + hWin.address)
-        Hyprland.dispatch("alterzorder top")
-        if (thumbContainer.moveCursorToActiveWindow) {
-          var cx = clientInfo.at[0] + (clientInfo.size[0]/2)
-          var cy = clientInfo.at[1] + (clientInfo.size[1]/2)
-        Hyprland.dispatch("movecursor " + cx + " " + cy)
+        WindowSource.activateWindow(win)
 
+        if (thumbContainer.moveCursorToActiveWindow) {
+            WindowSource.moveCursorTo(win)
         }
     }
 
     function closeWindow() {
-        if (!hWin) return
-        Hyprland.dispatch("closewindow address:0x" + hWin.address)
+        if (!win) return
+        WindowSource.closeWindow(win)
     }
 
     function refreshThumb() {
@@ -266,7 +253,7 @@ Item {
                 id: titleText
                 anchors.centerIn: parent
                 width: parent.width - 16
-                text: hWin.title
+                text: win ? win.title : ""
                 color: "white"
                 font.pixelSize: thumbContainer.hovered ? 13 : 12
                 elide: Text.ElideRight

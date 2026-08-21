@@ -4,9 +4,9 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Widgets
 import Quickshell.Wayland
-import Quickshell.Hyprland
 import Qt5Compat.GraphicalEffects
 import "../layouts"
+import "../services"
 import "."
 
 PanelWindow {
@@ -20,7 +20,6 @@ PanelWindow {
 
     // --- INTERNAL STATE ---
     property bool isActive: false
-    property bool specialActive: false
     property bool animateWindows: false
     property var lastPositions: {}
 
@@ -55,28 +54,9 @@ PanelWindow {
     }
 
     Connections {
-        target: Hyprland
-        function onRawEvent(ev) {
-            if (!root.isActive && ev.name !== "activespecial") return
-
-            switch (ev.name) {
-                case "openwindow":
-                case "closewindow":
-                case "changefloatingmode":
-                case "movewindow":
-                Hyprland.refreshToplevels()
-                refreshThumbs()
-                return
-
-                case "activespecial":
-                var dataStr = String(ev.data)
-                var namePart = dataStr.split(",")[0]
-                root.specialActive = (namePart.length > 0)
-                return
-
-                default:
-                return
-            }
+        target: WindowSource
+        function onThumbsInvalidated() {
+            root.refreshThumbs()
         }
     }
 
@@ -92,6 +72,7 @@ PanelWindow {
 
     function toggleExpose() {
         root.isActive = !root.isActive
+        WindowSource.active = root.isActive
         if (root.isActive) {
             if (root.layoutAlgorithm === 'random') {
                 var layouts = [
@@ -114,7 +95,7 @@ PanelWindow {
 
             exposeArea.currentIndex = -1
             searchBox.reset()
-            Hyprland.refreshToplevels()
+            WindowSource.refresh()
             refreshThumbs()
         } else {
             root.animateWindows = false
@@ -288,7 +269,7 @@ PanelWindow {
                         property int areaH: exposeArea.height
                         property string query: exposeArea.searchText
                         property string algo: root.lastLayoutAlgorithm
-                        property var rawToplevels: Hyprland.toplevels.values
+                        property var rawWindows: WindowSource.windows
 
                         values: {
                             // Bailout on wrong screen size
@@ -298,47 +279,35 @@ PanelWindow {
                             var windowList = []
                             var idx = 0
 
-                            if (!rawToplevels) return []
+                            if (!rawWindows) return []
 
-                            for (var it of rawToplevels) {
-                                var w = it
-                                var clientInfo = w && w.lastIpcObject ? w.lastIpcObject : {}
-                                var workspace = clientInfo && clientInfo.workspace ? clientInfo.workspace : null
-                                var workspaceId = workspace && workspace.id !== undefined ? workspace.id : undefined
-
-                                // Filter invalid workspace or offscreen windows
-                                if (workspaceId === undefined || workspaceId === null) continue
-                                var size = clientInfo && clientInfo.size ? clientInfo.size : [0, 0]
-                                var at = clientInfo && clientInfo.at ? clientInfo.at : [-1000, -1000]
-                                if (at[1] + size[1] <= 0) continue
+                            for (var w of rawWindows) {
+                                // Windows the compositor is keeping off screen
+                                if (!w.onscreen) continue
 
                                 // Text filtering
-                                var title = (w.title || clientInfo.title || "").toLowerCase()
-                                var clazz = (clientInfo["class"] || "").toLowerCase()
-                                var ic = (clientInfo.initialClass || "").toLowerCase()
-                                var app = (w.appId || clientInfo.initialClass || "").toLowerCase()
-
                                 if (q.length > 0) {
-                                    var match = title.indexOf(q) !== -1 || clazz.indexOf(q) !== -1 ||
-                                    ic.indexOf(q) !== -1 || app.indexOf(q) !== -1
+                                    var match = w.title.toLowerCase().indexOf(q) !== -1 ||
+                                    w.appId.toLowerCase().indexOf(q) !== -1 ||
+                                    w.className.toLowerCase().indexOf(q) !== -1
                                     if (!match) continue
                                 }
 
                                 windowList.push({
                                     win: w,
-                                    clientInfo: clientInfo,
-                                    workspaceId: workspaceId,
-                                    width: size[0],
-                                    height: size[1],
-                                    originalIndex: idx++,
-                                    lastIpcObject: w.lastIpcObject
+                                    key: w.key,
+                                    workspaceId: w.workspaceId,
+                                    workspaceOrder: w.workspaceOrder,
+                                    width: w.width,
+                                    height: w.height,
+                                    originalIndex: idx++
                                 })
                             }
 
-                            // Sort by workspaceId, then originalIndex
+                            // Sort by workspace order, then originalIndex
                             windowList.sort(function(a, b) {
-                                if (a.workspaceId < b.workspaceId) return -1
-                                if (a.workspaceId > b.workspaceId) return 1
+                                if (a.workspaceOrder < b.workspaceOrder) return -1
+                                if (a.workspaceOrder > b.workspaceOrder) return 1
                                 if (a.originalIndex < b.originalIndex) return -1
                                 if (a.originalIndex > b.originalIndex) return 1
                                 return 0
@@ -354,12 +323,9 @@ PanelWindow {
 
                         delegate: WindowThumbnail {
                             // Model data
-                            hWin: modelData.win
-                            wHandle: hWin.wayland
-                            winKey: String(hWin.address)
+                            win: modelData.win
                             thumbW: modelData.width
                             thumbH: modelData.height
-                            clientInfo: hWin.lastIpcObject
 
                             // Layout-generated coordinates
                             targetX: modelData.x
