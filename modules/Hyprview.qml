@@ -90,6 +90,7 @@ PanelWindow {
                     'spiral',
                     'satellite',
                     'staggered',
+                    'windows11',
                     'columnar',
                     'vortex',
                 ].filter((l) => l !== root.lastLayoutAlgorithm)

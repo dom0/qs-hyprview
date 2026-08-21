@@ -8,5 +8,6 @@ singleton SatelliteLayout 1.0 SatelliteLayout.qml
 singleton StaggeredLayout 1.0 StaggeredLayout.qml
 singleton ColumnarLayout 1.0 ColumnarLayout.qml
 singleton VortexLayout 1.0 VortexLayout.qml
+singleton Windows11Layout 1.0 Windows11Layout.qml
 
 singleton LayoutsManager 1.0 LayoutsManager.qml
