@@ -18,6 +18,8 @@ import Quickshell
 //   refresh()      - pull a fresh window list, for backends that poll
 //   activateWindow(win) / closeWindow(win)
 //   moveCursorTo(win)   - optional
+//   dimsOverlay    - true when the compositor already dims behind the
+//                    overlay's layer, so the shell must not dim twice
 //   thumbsInvalidated() - signal, the window set changed on screen
 //
 // A window record is a plain object:
@@ -55,6 +57,9 @@ Singleton {
 
     readonly property var windows: backend ? backend.windows : []
     readonly property string activeKey: backend ? backend.activeKey : ""
+
+    // Assume we have to dim ourselves until a backend says otherwise
+    readonly property bool dimsOverlay: backend ? backend.dimsOverlay : false
 
     // Set by the overview while it is visible. Backends use it to avoid
     // reacting to window events nobody is looking at.

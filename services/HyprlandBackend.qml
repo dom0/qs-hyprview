@@ -13,6 +13,10 @@ QtObject {
 
     property bool active: false
 
+    // Hyprland dims behind the overlay itself, through the dim_around
+    // layerrule documented in the README.
+    readonly property bool dimsOverlay: true
+
     // True while a special workspace is on screen. Focusing a window that is
     // not on it has to toggle it away first, or the window stays hidden.
     property bool specialActive: false

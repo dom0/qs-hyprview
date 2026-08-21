@@ -40,6 +40,10 @@ QtObject {
 
     property bool active: false
 
+    // cosmic-comp has no dim_around equivalent and no layer rules, so the
+    // shell has to draw its own dim.
+    readonly property bool dimsOverlay: false
+
     readonly property var rawToplevels: Cosmic.toplevels.values
 
     readonly property string activeKey: {

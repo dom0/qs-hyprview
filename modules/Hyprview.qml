@@ -18,6 +18,12 @@ PanelWindow {
     property bool liveCapture: false
     property bool moveCursorToActiveWindow: false
 
+    // Screen dim behind the thumbnails, 0 to 1. Defaults to 0 where the
+    // compositor already dims the overlay's layer itself, which on Hyprland
+    // means the dim_around layerrule from the README. Set it explicitly if you
+    // run Hyprland without that rule.
+    property real dimStrength: WindowSource.dimsOverlay ? 0 : 0.8
+
     // --- INTERNAL STATE ---
     property bool isActive: false
     property bool animateWindows: false
@@ -228,6 +234,13 @@ PanelWindow {
                     event.accepted = true
                 }
             }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            z: -2
+            color: Qt.rgba(0, 0, 0, root.dimStrength)
+            visible: root.dimStrength > 0
         }
 
         MouseArea {
