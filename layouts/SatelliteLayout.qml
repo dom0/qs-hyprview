@@ -1,6 +1,6 @@
 pragma Singleton
 import Quickshell
-import Quickshell.Hyprland
+import "../services"
 
 Singleton {
     id: root
@@ -10,9 +10,9 @@ Singleton {
         if (N === 0) return []
 
         // Move active window to the start of the list (Center Item)
-        var activeAddr = Hyprland.activeToplevel?.lastIpcObject?.address
-        if (activeAddr) {
-            var activeIdx = windowList.findIndex(it => it.lastIpcObject.address === activeAddr)
+        var activeKey = WindowSource.activeKey
+        if (activeKey) {
+            var activeIdx = windowList.findIndex(it => it.key === activeKey)
             if (activeIdx !== -1) {
                 windowList = [windowList[activeIdx], ...windowList.filter(it => it !== windowList[activeIdx])]
             }
