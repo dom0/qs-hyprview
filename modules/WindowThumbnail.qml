@@ -139,12 +139,16 @@ Item {
     function activateWindow() {
         if (!win) return
 
-        root.toggleExpose()
+        // The activation request has to go out before the overlay is hidden:
+        // unmapping the layer surface can take the connection down with it, and
+        // then the focus change never reaches the compositor.
         WindowSource.activateWindow(win)
 
         if (thumbContainer.moveCursorToActiveWindow) {
             WindowSource.moveCursorTo(win)
         }
+
+        root.toggleExpose()
     }
 
     function closeWindow() {
